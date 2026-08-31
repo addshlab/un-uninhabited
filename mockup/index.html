@@ -9,6 +9,8 @@
       color-scheme: dark;
       --bg: #121714;
       --panel: #1b241f;
+      --panel-light: #243229;
+      --accent: #d9b768;
       --text: #eef5e9;
       --sub: #aab8a8;
     }
@@ -20,28 +22,15 @@
       min-height: 100vh;
       display: grid;
       place-items: center;
-      background:
-        radial-gradient(circle at 50% 20%, #223129 0, #121714 60%);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      padding: 24px 0;
+      background: radial-gradient(circle at 50% 20%, #223129 0, var(--bg) 60%);
       color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
-    .app {
-      width: min(92vw, 430px);
-      text-align: center;
-    }
-
-    h1 {
-      margin: 0 0 10px;
-      font-size: 18px;
-      letter-spacing: .06em;
-    }
-
-    .sub {
-      margin: 0 0 14px;
-      color: var(--sub);
-      font-size: 12px;
-    }
+    .app { width: min(92vw, 430px); text-align: center; }
+    h1 { margin: 0 0 10px; font-size: 18px; letter-spacing: .06em; }
+    .sub { margin: 0 0 14px; color: var(--sub); font-size: 12px; }
 
     .frame {
       width: 288px;
@@ -49,9 +38,7 @@
       padding: 14px;
       border-radius: 18px;
       background: var(--panel);
-      box-shadow:
-        0 18px 60px rgba(0,0,0,.42),
-        inset 0 0 0 1px rgba(255,255,255,.05);
+      box-shadow: 0 18px 60px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.05);
     }
 
     canvas {
@@ -59,59 +46,95 @@
       width: 256px;
       height: 256px;
       background: #174d76;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
       border: 2px solid #080b09;
       box-shadow: 0 0 0 2px rgba(255,255,255,.06);
       cursor: crosshair;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
 
-    .toolbar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 12px auto 0;
-      width: 288px;
-    }
-
+    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px auto 0; width: 288px; }
     button {
       border: 0;
       border-radius: 10px;
       padding: 9px 10px;
-      background: #243229;
+      background: var(--panel-light);
       color: var(--text);
+      cursor: pointer;
       font: inherit;
       font-size: 12px;
-      cursor: pointer;
     }
-
-    button:hover { background: #304237; }
-    button:active { transform: translateY(1px); }
+    button:hover:not(:disabled) { background: #304237; }
+    button:active:not(:disabled) { transform: translateY(1px); }
+    button:disabled { cursor: not-allowed; opacity: .45; }
 
     .status {
-      margin-top: 10px;
-      min-height: 2.4em;
+      width: 288px;
+      margin: 10px auto 0;
+      min-height: 2.8em;
       color: var(--sub);
       font-size: 11px;
       line-height: 1.4;
     }
+
+    .inventory {
+      width: 288px;
+      margin: 14px auto 0;
+      padding: 12px;
+      border-radius: 14px;
+      background: var(--panel);
+      text-align: left;
+    }
+    .inventory-header, .inventory-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+    .inventory-header { margin-bottom: 10px; font-size: 12px; }
+    .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .slot {
+      min-width: 0;
+      min-height: 48px;
+      padding: 5px 2px;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 7px;
+      background: #161d19;
+      color: var(--sub);
+      font-size: 9px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+    .slot.filled { color: var(--text); }
+    .slot.selected { border-color: var(--accent); background: #3a3523; color: #fff4c8; }
+    .inventory-actions { margin-top: 10px; }
+    .inventory-actions button { flex: 1; font-size: 10px; }
+    .selection { margin: 9px 0 0; min-height: 1.4em; color: var(--sub); font-size: 10px; }
   </style>
 </head>
 <body>
   <main class="app">
     <h1>無人島ゲーム / Mockup</h1>
-    <p class="sub">256×256px Canvas / HTML + JavaScript</p>
+    <p class="sub">漂着物をクリックして回収しよう</p>
 
     <section class="frame">
       <canvas id="game" width="256" height="256" aria-label="無人島ゲーム画面"></canvas>
     </section>
 
     <div class="toolbar">
-      <button id="spawn">漂着物を流す</button>
+      <button id="spawn" disabled>漂着物を流す</button>
       <button id="toggleWave">波アニメ ON/OFF</button>
     </div>
 
-    <div class="status" id="status">砂浜をクリックすると、その場所に漂着物を置けます。</div>
+    <div class="status" id="status" aria-live="polite">アイテムデータを読み込んでいます…</div>
+
+    <section class="inventory" aria-labelledby="inventoryTitle">
+      <div class="inventory-header">
+        <strong id="inventoryTitle">インベントリ</strong>
+        <span id="inventoryCount">0 / 8</span>
+      </div>
+      <div class="inventory-grid" id="inventoryGrid"></div>
+      <p class="selection" id="selection">アイテムを選ぶと砂浜に配置できます。</p>
+      <div class="inventory-actions">
+        <button id="expandInventory">容量を4枠拡張</button>
+        <button id="cancelSelection" disabled>選択を解除</button>
+      </div>
+    </section>
   </main>
 
   <script src="./game.js"></script>

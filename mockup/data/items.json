@@ -1,0 +1,14 @@
+{
+  "items": [
+    { "id": "driftwood", "name": "流木", "type": "wood", "rarity": "common", "weight": 30, "description": "工作や焚き火に使えそうな流木", "despawnSeconds": 75 },
+    { "id": "twig", "name": "小枝", "type": "twig", "rarity": "common", "weight": 25, "description": "乾いた細い枝。火口に使えそう", "despawnSeconds": 60 },
+    { "id": "shell", "name": "貝殻", "type": "shell", "rarity": "common", "weight": 22, "description": "波に磨かれた小さな貝殻", "despawnSeconds": 90 },
+    { "id": "coconut", "name": "ヤシの実", "type": "coconut", "rarity": "common", "weight": 18, "description": "まだ中身が残っていそうなヤシの実", "despawnSeconds": 75 },
+    { "id": "bottle", "name": "空き瓶", "type": "bottle", "rarity": "uncommon", "weight": 14, "description": "蓋の付いた古いガラス瓶", "despawnSeconds": 60 },
+    { "id": "cloth", "name": "布切れ", "type": "cloth", "rarity": "uncommon", "weight": 12, "description": "潮で色あせた丈夫そうな布", "despawnSeconds": 45 },
+    { "id": "rope", "name": "ロープ", "type": "rope", "rarity": "uncommon", "weight": 10, "description": "短いがまだ使えそうなロープ", "despawnSeconds": 75 },
+    { "id": "fishing-net", "name": "漁網", "type": "net", "rarity": "rare", "weight": 6, "description": "ところどころ破れた漁網", "despawnSeconds": 90 },
+    { "id": "wooden-crate", "name": "木箱", "type": "crate", "rarity": "rare", "weight": 4, "description": "固く閉ざされた小さな木箱", "despawnSeconds": 120 },
+    { "id": "old-key", "name": "古びた鍵", "type": "key", "rarity": "rare", "weight": 2, "description": "何の鍵かは分からない", "despawnSeconds": 120 }
+  ]
+}
