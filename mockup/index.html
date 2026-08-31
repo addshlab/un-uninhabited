@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>無人島ゲーム Mockup</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #121714;
+      --panel: #1b241f;
+      --text: #eef5e9;
+      --sub: #aab8a8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 50% 20%, #223129 0, #121714 60%);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--text);
+    }
+
+    .app {
+      width: min(92vw, 430px);
+      text-align: center;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: .06em;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      color: var(--sub);
+      font-size: 12px;
+    }
+
+    .frame {
+      width: 288px;
+      margin: 0 auto;
+      padding: 14px;
+      border-radius: 18px;
+      background: var(--panel);
+      box-shadow:
+        0 18px 60px rgba(0,0,0,.42),
+        inset 0 0 0 1px rgba(255,255,255,.05);
+    }
+
+    canvas {
+      display: block;
+      width: 256px;
+      height: 256px;
+      background: #174d76;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      border: 2px solid #080b09;
+      box-shadow: 0 0 0 2px rgba(255,255,255,.06);
+      cursor: crosshair;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin: 12px auto 0;
+      width: 288px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 10px;
+      padding: 9px 10px;
+      background: #243229;
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    button:hover { background: #304237; }
+    button:active { transform: translateY(1px); }
+
+    .status {
+      margin-top: 10px;
+      min-height: 2.4em;
+      color: var(--sub);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>無人島ゲーム / Mockup</h1>
+    <p class="sub">256×256px Canvas / HTML + JavaScript</p>
+
+    <section class="frame">
+      <canvas id="game" width="256" height="256" aria-label="無人島ゲーム画面"></canvas>
+    </section>
+
+    <div class="toolbar">
+      <button id="spawn">漂着物を流す</button>
+      <button id="toggleWave">波アニメ ON/OFF</button>
+    </div>
+
+    <div class="status" id="status">砂浜をクリックすると、その場所に漂着物を置けます。</div>
+  </main>
+
+  <script src="./game.js"></script>
+</body>
+</html>
