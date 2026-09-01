@@ -2,117 +2,225 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <title>無人島ゲーム Mockup</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #121714;
-      --panel: #1b241f;
-      --text: #eef5e9;
-      --sub: #aab8a8;
+      --panel: rgba(18, 27, 22, .94);
+      --panel-light: #2c3d31;
+      --accent: #e3bd5f;
+      --text: #f4f8ef;
+      --sub: #bcc9b9;
     }
 
     * { box-sizing: border-box; }
-
+    html, body { width: 100%; height: 100%; overflow: hidden; }
     body {
       margin: 0;
-      min-height: 100vh;
       display: grid;
       place-items: center;
-      background:
-        radial-gradient(circle at 50% 20%, #223129 0, #121714 60%);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      background: #0b100d;
       color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      overscroll-behavior: none;
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
-    .app {
-      width: min(92vw, 430px);
-      text-align: center;
-    }
-
-    h1 {
-      margin: 0 0 10px;
-      font-size: 18px;
-      letter-spacing: .06em;
-    }
-
-    .sub {
-      margin: 0 0 14px;
-      color: var(--sub);
-      font-size: 12px;
-    }
-
-    .frame {
-      width: 288px;
-      margin: 0 auto;
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--panel);
-      box-shadow:
-        0 18px 60px rgba(0,0,0,.42),
-        inset 0 0 0 1px rgba(255,255,255,.05);
+    .game-shell {
+      position: relative;
+      width: min(100vw, calc(100dvh * 16 / 9));
+      height: min(100dvh, calc(100vw * 9 / 16));
+      max-width: calc(100vw - env(safe-area-inset-left) - env(safe-area-inset-right));
+      max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+      overflow: hidden;
+      border: 2px solid #070a08;
+      background: #174d76;
+      box-shadow: 0 14px 50px rgba(0, 0, 0, .5);
+      isolation: isolate;
     }
 
     canvas {
       display: block;
-      width: 256px;
-      height: 256px;
-      background: #174d76;
+      width: 100%;
+      height: 100%;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
-      border: 2px solid #080b09;
-      box-shadow: 0 0 0 2px rgba(255,255,255,.06);
-      cursor: crosshair;
+      touch-action: none;
     }
 
-    .toolbar {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin: 12px auto 0;
-      width: 288px;
+    .hud {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
     }
 
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 9px 10px;
-      background: #243229;
+    .hud-chip, button {
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 7px;
+      background: rgba(12, 19, 15, .82);
       color: var(--text);
       font: inherit;
-      font-size: 12px;
-      cursor: pointer;
+      text-shadow: 0 1px #000;
     }
 
-    button:hover { background: #304237; }
-    button:active { transform: translateY(1px); }
+    .drift-status {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      padding: 5px 8px;
+      font-size: clamp(8px, 1.7vw, 12px);
+    }
 
-    .status {
-      margin-top: 10px;
-      min-height: 2.4em;
+    .wave-toggle {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      min-width: 44px;
+      min-height: 36px;
+      padding: 5px 9px;
+      pointer-events: auto;
+      cursor: pointer;
+      font-size: clamp(8px, 1.7vw, 12px);
+    }
+
+    .message {
+      position: absolute;
+      left: 50%;
+      bottom: 7px;
+      width: min(84%, 390px);
+      min-height: 25px;
+      padding: 5px 10px;
+      transform: translateX(-50%);
       color: var(--sub);
-      font-size: 11px;
-      line-height: 1.4;
+      text-align: center;
+      font-size: clamp(8px, 1.6vw, 11px);
+      line-height: 1.35;
+    }
+
+    .chest-hint {
+      position: absolute;
+      right: 4%;
+      bottom: 12%;
+      padding: 3px 6px;
+      color: #fff3c4;
+      font-size: clamp(7px, 1.45vw, 10px);
+      transition: opacity .2s;
+    }
+
+    .inventory-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      z-index: 4;
+      width: min(82%, 390px);
+      max-height: 88%;
+      padding: 11px;
+      overflow: auto;
+      transform: translate(-50%, -50%);
+      border: 2px solid #765026;
+      border-radius: 10px;
+      background: var(--panel);
+      box-shadow: 0 10px 40px rgba(0,0,0,.65), inset 0 0 0 1px rgba(255,255,255,.06);
+      pointer-events: auto;
+    }
+    .inventory-panel[hidden] { display: none; }
+    .inventory-header, .inventory-actions { display: flex; align-items: center; gap: 8px; }
+    .inventory-header { justify-content: space-between; margin-bottom: 8px; font-size: clamp(10px, 2vw, 14px); }
+    .inventory-title { color: #f5d584; }
+    .close-inventory {
+      width: 36px;
+      min-height: 32px;
+      padding: 0;
+      background: var(--panel-light);
+      cursor: pointer;
+    }
+    .inventory-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; }
+    .slot {
+      min-width: 0;
+      min-height: 44px;
+      padding: 4px 2px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 5px;
+      background: #151d18;
+      color: var(--sub);
+      cursor: pointer;
+      font-size: clamp(7px, 1.35vw, 10px);
+      line-height: 1.2;
+      overflow-wrap: anywhere;
+    }
+    .slot:disabled { cursor: default; opacity: .55; }
+    .slot.filled { color: var(--text); }
+    .slot.selected { border-color: var(--accent); background: #423a22; color: #fff4c8; }
+    .selection { margin: 7px 0; min-height: 1.3em; color: var(--sub); font-size: clamp(8px, 1.45vw, 10px); }
+    .inventory-actions { justify-content: flex-end; }
+    .inventory-actions button {
+      min-height: 34px;
+      padding: 5px 9px;
+      background: var(--panel-light);
+      cursor: pointer;
+      font-size: clamp(8px, 1.45vw, 10px);
+    }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+
+    .rotate-prompt {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      place-items: center;
+      padding: 28px;
+      background: #101713;
+      color: var(--text);
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+    .rotate-icon { display: block; margin-bottom: 8px; font-size: 36px; }
+
+    @media (orientation: portrait) and (max-width: 700px) {
+      .rotate-prompt { display: grid; }
+    }
+    @media (max-height: 360px) {
+      .inventory-panel { padding: 8px; }
+      .inventory-grid { gap: 3px; }
+      .slot { min-height: 38px; }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <h1>無人島ゲーム / Mockup</h1>
-    <p class="sub">256×256px Canvas / HTML + JavaScript</p>
+  <main class="game-shell" id="gameShell">
+    <canvas id="game" width="480" height="270" aria-label="無人島ゲーム画面"></canvas>
 
-    <section class="frame">
-      <canvas id="game" width="256" height="256" aria-label="無人島ゲーム画面"></canvas>
-    </section>
-
-    <div class="toolbar">
-      <button id="spawn">漂着物を流す</button>
-      <button id="toggleWave">波アニメ ON/OFF</button>
+    <div class="hud">
+      <div class="hud-chip drift-status" id="driftStatus">次の漂着：--秒</div>
+      <button class="wave-toggle" id="toggleWave" type="button">波 ON</button>
+      <div class="hud-chip message" id="status" aria-live="polite">アイテムデータを読み込んでいます…</div>
+      <div class="hud-chip chest-hint" id="chestHint">木箱をタップ</div>
     </div>
 
-    <div class="status" id="status">砂浜をクリックすると、その場所に漂着物を置けます。</div>
+    <section class="inventory-panel" id="inventoryPanel" aria-labelledby="inventoryTitle" hidden>
+      <div class="inventory-header">
+        <strong class="inventory-title" id="inventoryTitle">木箱 — インベントリ</strong>
+        <span id="inventoryCount">0 / 8</span>
+        <button class="close-inventory" id="closeInventory" type="button" aria-label="インベントリを閉じる">×</button>
+      </div>
+      <div class="inventory-grid" id="inventoryGrid"></div>
+      <p class="selection" id="selection">アイテムを選ぶと砂浜に配置できます。</p>
+      <div class="inventory-actions">
+        <button id="expandInventory" type="button">容量を4枠拡張</button>
+        <button id="cancelSelection" type="button" disabled>選択解除</button>
+      </div>
+    </section>
   </main>
+
+  <div class="rotate-prompt" role="status">
+    <p><span class="rotate-icon">↻</span>端末を横向きにしてください</p>
+  </div>
 
   <script src="./game.js"></script>
 </body>
