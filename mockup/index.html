@@ -2,140 +2,225 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>無人島ゲーム Mockup</title>
   <style>
     :root {
       color-scheme: dark;
-      --bg: #121714;
-      --panel: #1b241f;
-      --panel-light: #243229;
-      --accent: #d9b768;
-      --text: #eef5e9;
-      --sub: #aab8a8;
+      --panel: rgba(18, 27, 22, .9);
+      --panel-light: #304237;
+      --accent: #f2ce74;
+      --text: #f7f9ed;
+      --sub: #bdc9bb;
     }
 
     * { box-sizing: border-box; }
 
+    html, body { width: 100%; min-height: 100%; }
     body {
       margin: 0;
-      min-height: 100vh;
+      min-height: 100svh;
       display: grid;
       place-items: center;
-      padding: 24px 0;
-      background: radial-gradient(circle at 50% 20%, #223129 0, var(--bg) 60%);
+      padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right))
+        max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 20%, #31463a 0, #101512 66%);
       color: var(--text);
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
-    .app { width: min(92vw, 430px); text-align: center; }
-    h1 { margin: 0 0 10px; font-size: 18px; letter-spacing: .06em; }
-    .sub { margin: 0 0 14px; color: var(--sub); font-size: 12px; }
-
-    .frame {
-      width: 288px;
-      margin: 0 auto;
-      padding: 14px;
-      border-radius: 18px;
-      background: var(--panel);
-      box-shadow: 0 18px 60px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,255,255,.05);
+    button { font: inherit; }
+    .app { width: min(100%, calc((100svh - 16px) * 1.777), 960px); }
+    .game-screen {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border: 3px solid #090d0a;
+      border-radius: 16px;
+      background: #174d76;
+      box-shadow: 0 18px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.1);
     }
 
     canvas {
       display: block;
-      width: 256px;
-      height: 256px;
-      background: #174d76;
-      border: 2px solid #080b09;
-      box-shadow: 0 0 0 2px rgba(255,255,255,.06);
+      width: 100%;
+      height: 100%;
       cursor: crosshair;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
 
-    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px auto 0; width: 288px; }
+    .map-header {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 61%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+      pointer-events: none;
+    }
+    .title-block, .status {
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: 8px;
+      background: rgba(10, 20, 17, .72);
+      box-shadow: 0 3px 12px rgba(0,0,0,.22);
+      backdrop-filter: blur(3px);
+    }
+    .title-block { padding: 6px 8px; text-align: left; }
+    h1 { margin: 0; font-size: clamp(10px, 2.2svh, 15px); letter-spacing: .05em; }
+    .title-block p { margin: 3px 0 0; color: var(--sub); font-size: clamp(7px, 1.5svh, 10px); }
+    .status {
+      min-width: 43%;
+      padding: 6px 8px;
+      color: var(--text);
+      font-size: clamp(7px, 1.45svh, 10px);
+      line-height: 1.35;
+      text-align: left;
+      white-space: pre-line;
+    }
+
+    .quick-actions {
+      position: absolute;
+      left: 10px;
+      bottom: 10px;
+      display: flex;
+      gap: 6px;
+    }
     button {
-      border: 0;
-      border-radius: 10px;
-      padding: 9px 10px;
+      min-height: 30px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 7px;
+      padding: 5px 8px;
       background: var(--panel-light);
       color: var(--text);
       cursor: pointer;
-      font: inherit;
-      font-size: 12px;
+      font-size: clamp(8px, 1.55svh, 11px);
+      touch-action: manipulation;
     }
-    button:hover:not(:disabled) { background: #304237; }
+    button:hover:not(:disabled) { background: #3b5244; }
     button:active:not(:disabled) { transform: translateY(1px); }
-    button:disabled { cursor: not-allowed; opacity: .45; }
-
-    .status {
-      width: 288px;
-      margin: 10px auto 0;
-      min-height: 2.8em;
-      color: var(--sub);
-      font-size: 11px;
-      line-height: 1.4;
-    }
+    button:disabled { cursor: not-allowed; opacity: .38; }
 
     .inventory {
-      width: 288px;
-      margin: 14px auto 0;
-      padding: 12px;
-      border-radius: 14px;
-      background: var(--panel);
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: 35%;
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      border-left: 2px solid rgba(255,255,255,.14);
+      background: linear-gradient(100deg, rgba(14, 23, 18, .84), rgba(14, 23, 18, .96));
       text-align: left;
+      backdrop-filter: blur(4px);
     }
-    .inventory-header, .inventory-actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-    .inventory-header { margin-bottom: 10px; font-size: 12px; }
-    .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .inventory-header, .inventory-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .inventory-header { margin-bottom: 6px; font-size: clamp(9px, 2svh, 13px); }
+    .inventory-count { color: var(--accent); }
+    .inventory-grid {
+      min-height: 0;
+      flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-rows: repeat(6, minmax(0, 1fr));
+      gap: 4px;
+    }
     .slot {
       min-width: 0;
-      min-height: 48px;
-      padding: 5px 2px;
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: 7px;
-      background: #161d19;
-      color: var(--sub);
-      font-size: 9px;
-      line-height: 1.25;
+      min-height: 0;
+      padding: 2px;
+      border-color: rgba(255,255,255,.11);
+      background: rgba(8, 13, 10, .7);
+      color: #718075;
+      font-size: clamp(7px, 1.45svh, 10px);
+      line-height: 1.15;
       overflow-wrap: anywhere;
     }
-    .slot.filled { color: var(--text); }
-    .slot.selected { border-color: var(--accent); background: #3a3523; color: #fff4c8; }
-    .inventory-actions { margin-top: 10px; }
-    .inventory-actions button { flex: 1; font-size: 10px; }
-    .selection { margin: 9px 0 0; min-height: 1.4em; color: var(--sub); font-size: 10px; }
+    .slot.filled { color: var(--text); background: rgba(38, 54, 44, .92); }
+    .slot.selected { border-color: var(--accent); background: #514828; color: #fff4c8; box-shadow: inset 0 0 0 1px var(--accent); }
+    .selection {
+      margin: 5px 0;
+      min-height: 2.3em;
+      color: var(--sub);
+      font-size: clamp(7px, 1.4svh, 10px);
+      line-height: 1.2;
+    }
+    .inventory-actions button { flex: 1; min-width: 0; padding-inline: 3px; }
+    .portrait-notice { display: none; }
+
+    @media (max-height: 360px) and (orientation: landscape) {
+      .game-screen { border-radius: 10px; }
+      .inventory { padding: 7px; }
+      .map-header { top: 7px; left: 7px; }
+      .quick-actions { left: 7px; bottom: 7px; }
+      button { min-height: 26px; }
+      .selection { margin-block: 3px; }
+    }
+
+    @media (orientation: portrait) and (max-width: 700px) {
+      .app { display: none; }
+      .portrait-notice {
+        display: grid;
+        place-items: center;
+        gap: 10px;
+        max-width: 280px;
+        padding: 24px;
+        border: 1px solid rgba(255,255,255,.12);
+        border-radius: 16px;
+        background: var(--panel);
+        text-align: center;
+      }
+      .rotate-icon { font-size: 36px; transform: rotate(90deg); }
+      .portrait-notice strong { font-size: 15px; }
+      .portrait-notice span { color: var(--sub); font-size: 11px; line-height: 1.6; }
+    }
   </style>
 </head>
 <body>
   <main class="app">
-    <h1>無人島ゲーム / Mockup</h1>
-    <p class="sub">漂着物をクリックして回収しよう</p>
+    <section class="game-screen" aria-label="無人島ゲーム画面">
+      <canvas id="game" width="384" height="216"></canvas>
 
-    <section class="frame">
-      <canvas id="game" width="256" height="256" aria-label="無人島ゲーム画面"></canvas>
-    </section>
+      <header class="map-header">
+        <div class="title-block">
+          <h1>無人島 / DAY 1</h1>
+          <p>漂着物をタップして回収</p>
+        </div>
+        <div class="status" id="status" aria-live="polite">アイテムデータを読み込んでいます…</div>
+      </header>
 
-    <div class="toolbar">
-      <button id="spawn" disabled>漂着物を流す</button>
-      <button id="toggleWave">波アニメ ON/OFF</button>
-    </div>
-
-    <div class="status" id="status" aria-live="polite">アイテムデータを読み込んでいます…</div>
-
-    <section class="inventory" aria-labelledby="inventoryTitle">
-      <div class="inventory-header">
-        <strong id="inventoryTitle">インベントリ</strong>
-        <span id="inventoryCount">0 / 8</span>
+      <div class="quick-actions" aria-label="マップ操作">
+        <button id="spawn" disabled>＋ 漂着物</button>
+        <button id="toggleWave">波 ON/OFF</button>
       </div>
-      <div class="inventory-grid" id="inventoryGrid"></div>
-      <p class="selection" id="selection">アイテムを選ぶと砂浜に配置できます。</p>
-      <div class="inventory-actions">
-        <button id="expandInventory">容量を4枠拡張</button>
-        <button id="cancelSelection" disabled>選択を解除</button>
-      </div>
+
+      <section class="inventory" aria-labelledby="inventoryTitle">
+        <div class="inventory-header">
+          <strong id="inventoryTitle">🎒 インベントリ</strong>
+          <span class="inventory-count" id="inventoryCount">0 / 8</span>
+        </div>
+        <div class="inventory-grid" id="inventoryGrid"></div>
+        <p class="selection" id="selection">アイテムを選ぶと砂浜に配置できます。</p>
+        <div class="inventory-actions">
+          <button id="expandInventory">＋4枠</button>
+          <button id="cancelSelection" disabled>選択解除</button>
+        </div>
+      </section>
     </section>
   </main>
+
+  <aside class="portrait-notice" aria-label="画面回転のお願い">
+    <div class="rotate-icon" aria-hidden="true">▣</div>
+    <strong>端末を横向きにしてください</strong>
+    <span>マップとインベントリを同時に見ながら遊べます。</span>
+  </aside>
 
   <script src="./game.js"></script>
 </body>

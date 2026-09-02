@@ -4,6 +4,7 @@ ctx.imageSmoothingEnabled = false;
 
 const W = canvas.width;
 const H = canvas.height;
+const PLAYABLE_WIDTH = 250;
 const BEACH_ITEM_LIMIT = 12;
 const INITIAL_INVENTORY_CAPACITY = 8;
 const INVENTORY_EXPANSION_SIZE = 4;
@@ -95,14 +96,14 @@ function drawIsland() {
       px(x, y, 3, 2, (x * 11 + y * 3) % 5 < 3 ? COLORS.grassLight : COLORS.grassDark);
     }
   }
-  drawPalm(45, 157, 1);
-  drawPalm(214, 168, .9);
-  drawPalm(164, 220, 1.1);
-  drawRock(28, 212, 14, 10);
+  drawPalm(45, 151, 1);
+  drawPalm(214, 158, .9);
+  drawPalm(164, 194, 1.1);
+  drawRock(28, 190, 14, 10);
   drawRock(114, 157, 10, 7);
-  drawBush(88, 192);
-  drawBush(226, 222);
-  drawCampfire(126, 217);
+  drawBush(88, 181);
+  drawBush(226, 198);
+  drawCampfire(126, 192);
 }
 
 function drawPalm(x, y, s = 1) {
@@ -196,7 +197,7 @@ function chooseWeightedItem(random = Math.random()) {
 
 function findOpenBeachPosition() {
   for (let attempt = 0; attempt < 30; attempt += 1) {
-    const x = 12 + Math.random() * 232;
+    const x = 12 + Math.random() * (PLAYABLE_WIDTH - 24);
     const shore = shorelineY(x, state.time);
     const y = Math.min(113, shore + 10 + Math.random() * Math.max(5, 112 - shore));
     if (!state.beachItems.some((item) => Math.hypot(item.x - x, item.y - y) < 15)) return { x, y };
