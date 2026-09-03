@@ -13,7 +13,6 @@ const SPAWN_INTERVAL = { base: 15000, min: 8000, max: 30000 };
 
 const state = {
   time: 0,
-  waveEnabled: true,
   beachItems: [],
   itemDefinitions: [],
   inventory: { capacity: INITIAL_INVENTORY_CAPACITY, items: [] },
@@ -58,7 +57,7 @@ function drawSea(t) {
   for (let y = 6; y < 74; y += 7) {
     for (let x = y % 14; x < W; x += 13) {
       const n = (x * 17 + y * 29) % 31;
-      const shift = state.waveEnabled ? Math.sin(t * 1.8 + y * 0.18) * 2 : 0;
+      const shift = Math.sin(t * 1.8 + y * 0.18) * 2;
       px(x + shift, y, n < 15 ? 4 : 3, n < 15 ? 2 : 1, n < 15 ? COLORS.seaLight : COLORS.seaDeep);
     }
   }
@@ -76,7 +75,7 @@ function drawBeach(t) {
 
   for (let x = 0; x < W; x += 5) {
     const y = shorelineY(x, t);
-    const bob = state.waveEnabled ? Math.sin(t * 3 + x * 0.08) : 0;
+    const bob = Math.sin(t * 3 + x * 0.08);
     if (((x / 5) | 0) % 3 !== 1) px(x, y - 2 + bob, 4, 2, COLORS.foam);
   }
   for (let y = 88; y < 119; y += 7) {
@@ -103,7 +102,7 @@ function drawIsland() {
   drawRock(114, 157, 10, 7);
   drawBush(88, 181);
   drawBush(226, 198);
-  drawCampfire(126, 192);
+  drawCampfire(126, 192, state.time);
 }
 
 function drawPalm(x, y, s = 1) {
@@ -133,13 +132,16 @@ function drawBush(x, y) {
   px(x - 6, y - 3, 3, 7, COLORS.leafLight);
 }
 
-function drawCampfire(x, y) {
+function drawCampfire(x, y, t) {
   [[-8,3],[-4,7],[2,7],[7,3],[7,-2],[2,-5],[-4,-5],[-8,-2]].forEach(([dx, dy]) => px(x + dx, y + dy, 5, 4, COLORS.rock));
   px(x - 6, y + 1, 14, 3, COLORS.wood);
   px(x - 2, y - 1, 3, 10, "#533719");
-  px(x - 2, y - 8, 6, 9, COLORS.fire2);
-  px(x - 1, y - 11, 4, 8, COLORS.fire);
-  px(x, y - 6, 2, 5, "#ffe277");
+  const frame = Math.floor(t * 8) % 4;
+  const sway = [-1, 0, 1, 0][frame];
+  const flameTop = [0, 2, 1, 3][frame];
+  px(x - 3 + sway, y - 8, 7, 9, COLORS.fire2);
+  px(x - 1 + sway, y - 12 + flameTop, 4, 8 - Math.floor(flameTop / 2), COLORS.fire);
+  px(x + sway, y - 6, 2, 5, "#ffe277");
 }
 
 function drawItem(item) {
@@ -373,7 +375,6 @@ canvas.addEventListener("click", (event) => {
 });
 
 document.getElementById("spawn").addEventListener("click", () => spawnRandomItem());
-document.getElementById("toggleWave").addEventListener("click", () => { state.waveEnabled = !state.waveEnabled; });
 document.getElementById("cancelSelection").addEventListener("click", () => {
   state.selectedInventoryId = null;
   renderInventory();
