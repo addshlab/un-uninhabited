@@ -10,6 +10,12 @@ const INITIAL_INVENTORY_CAPACITY = 8;
 const INVENTORY_EXPANSION_SIZE = 4;
 const MAX_INVENTORY_CAPACITY = 24;
 const SPAWN_INTERVAL = { base: 15000, min: 8000, max: 30000 };
+const TIME_PERIODS = [
+  { id: "morning", label: "朝", startHour: 5 },
+  { id: "day", label: "昼", startHour: 11 },
+  { id: "evening", label: "夕方", startHour: 17 },
+  { id: "night", label: "夜", startHour: 20 },
+];
 
 const state = {
   time: 0,
@@ -22,6 +28,7 @@ const state = {
   spawnTimer: null,
   message: "アイテムデータを読み込んでいます…",
   messageUntil: Infinity,
+  localTime: null,
 };
 
 const COLORS = {
@@ -31,6 +38,31 @@ const COLORS = {
   trunk: "#77522f", trunkDark: "#50351f", leaf: "#356d35", leafLight: "#4f8c43",
   rock: "#6f746b", rockDark: "#444842", fire: "#ffb13b", fire2: "#e65d2f", wood: "#785025",
 };
+
+function getLocalTimeInfo(now = new Date()) {
+  // Dateの基準値（UTC）にブラウザのタイムゾーン差分を加え、現地時刻を作る。
+  const timezoneOffsetMinutes = now.getTimezoneOffset();
+  const localDate = new Date(now.getTime() - timezoneOffsetMinutes * 60 * 1000);
+  const hour = localDate.getUTCHours();
+  const minute = localDate.getUTCMinutes();
+  const period = [...TIME_PERIODS].reverse().find((candidate) => hour >= candidate.startHour)
+    ?? TIME_PERIODS.at(-1);
+  return {
+    hour,
+    minute,
+    period,
+    timezoneOffsetMinutes,
+    isoLocal: `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, "0")}-${String(localDate.getUTCDate()).padStart(2, "0")}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+  };
+}
+
+function updateLocalTime(now = new Date()) {
+  state.localTime = getLocalTimeInfo(now);
+  document.getElementById("timePeriod").textContent = state.localTime.period.label;
+  const timeElement = document.getElementById("localTime");
+  timeElement.textContent = `${String(state.localTime.hour).padStart(2, "0")}:${String(state.localTime.minute).padStart(2, "0")}`;
+  timeElement.dateTime = state.localTime.isoLocal;
+}
 
 function px(x, y, w = 2, h = 2, color = "#fff") {
   ctx.fillStyle = color;
@@ -60,6 +92,50 @@ function drawSea(t) {
       const shift = Math.sin(t * 1.8 + y * 0.18) * 2;
       px(x + shift, y, n < 15 ? 4 : 3, n < 15 ? 2 : 1, n < 15 ? COLORS.seaLight : COLORS.seaDeep);
     }
+  }
+}
+
+function drawCelestialLight(t) {
+  const period = state.localTime?.period.id ?? "day";
+  if (period === "morning" || period === "evening") {
+    const evening = period === "evening";
+    const x = evening ? 208 : 42;
+    const gradient = ctx.createRadialGradient(x, 25, 2, x, 25, 48);
+    gradient.addColorStop(0, evening ? "rgba(255, 190, 91, .8)" : "rgba(255, 232, 164, .68)");
+    gradient.addColorStop(1, "rgba(255, 157, 79, 0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, PLAYABLE_WIDTH, 96);
+    px(x - 4, 21, 9, 9, evening ? "#ffd078" : "#fff1b2");
+  }
+  if (period === "night") {
+    const stars = [[16,12],[31,34],[55,17],[78,42],[101,9],[126,30],[151,16],[177,45],[203,12],[229,33]];
+    for (const [x, y] of stars) {
+      const twinkle = Math.sin(t * 2 + x) > 0 ? 2 : 1;
+      px(x, y, twinkle, twinkle, "#dbe7dc");
+    }
+    px(202, 16, 10, 10, "#e9edcf");
+    px(198, 13, 8, 8, "#17304a");
+  }
+}
+
+function drawTimeOfDayOverlay() {
+  const period = state.localTime?.period.id ?? "day";
+  const overlay = {
+    morning: "rgba(255, 204, 128, .12)",
+    day: "rgba(0, 0, 0, 0)",
+    evening: "rgba(156, 55, 42, .28)",
+    night: "rgba(5, 18, 48, .58)",
+  }[period];
+  ctx.fillStyle = overlay;
+  ctx.fillRect(0, 0, PLAYABLE_WIDTH, H);
+
+  if (period === "night") {
+    const glow = ctx.createRadialGradient(126, 192, 2, 126, 192, 35);
+    glow.addColorStop(0, "rgba(255, 181, 69, .48)");
+    glow.addColorStop(1, "rgba(255, 130, 40, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(88, 154, 76, 62);
+    drawCampfire(126, 192, state.time);
   }
 }
 
@@ -355,9 +431,11 @@ function render(ms) {
   removeExpiredItems(now);
   ctx.clearRect(0, 0, W, H);
   drawSea(state.time);
+  drawCelestialLight(state.time);
   drawBeach(state.time);
   drawIsland();
   drawBeachItems(now);
+  drawTimeOfDayOverlay();
   requestAnimationFrame(render);
 }
 
@@ -387,6 +465,7 @@ document.getElementById("expandInventory").addEventListener("click", () => {
 });
 
 async function initialize() {
+  updateLocalTime();
   renderInventory();
   try {
     const response = await fetch("./data/items.json");
@@ -407,6 +486,9 @@ async function initialize() {
   }
 }
 
-setInterval(updateStatus, 1000);
+setInterval(() => {
+  updateLocalTime();
+  updateStatus();
+}, 1000);
 requestAnimationFrame(render);
 initialize();
