@@ -341,19 +341,28 @@ function removeExpiredItems(now) {
   announce(`${names}は波にさらわれました。`);
 }
 
+function getInventoryCount() {
+  return state.inventory.items.reduce((total, item) => total + item.quantity, 0);
+}
+
 function collectItem(item) {
-  if (state.inventory.items.length >= state.inventory.capacity) {
+  if (getInventoryCount() >= state.inventory.capacity) {
     announce("インベントリが満杯です。漂着物は砂浜に残っています。");
     return;
   }
   state.beachItems = state.beachItems.filter((candidate) => candidate.instanceId !== item.instanceId);
-  state.inventory.items.push({ instanceId: item.instanceId, definition: item.definition });
+  const stack = state.inventory.items.find((candidate) => candidate.definition.id === item.definition.id);
+  if (stack) {
+    stack.quantity += 1;
+  } else {
+    state.inventory.items.push({ definition: item.definition, quantity: 1 });
+  }
   announce(`${item.definition.name}を取得しました。${item.definition.description}`);
   renderInventory();
 }
 
 function placeSelectedItem(x, y) {
-  const item = state.inventory.items.find((candidate) => candidate.instanceId === state.selectedInventoryId);
+  const item = state.inventory.items.find((candidate) => candidate.definition.id === state.selectedInventoryId);
   if (!item) return false;
   if (!isOnBeach(x, y)) {
     announce("アイテムは砂浜にだけ配置できます。");
@@ -367,8 +376,11 @@ function placeSelectedItem(x, y) {
     announce("ほかの漂着物から少し離して配置してください。");
     return true;
   }
-  state.inventory.items = state.inventory.items.filter((candidate) => candidate.instanceId !== item.instanceId);
-  putOnBeach(item, x, y, "inventory");
+  item.quantity -= 1;
+  if (item.quantity === 0) {
+    state.inventory.items = state.inventory.items.filter((candidate) => candidate !== item);
+  }
+  putOnBeach(makeInstance(item.definition), x, y, "inventory");
   state.selectedInventoryId = null;
   announce(`${item.definition.name}を砂浜に配置しました。`);
   renderInventory();
@@ -394,33 +406,44 @@ function updateStatus() {
 }
 
 function renderInventory() {
-  const grid = document.getElementById("inventoryGrid");
-  grid.replaceChildren();
-  for (let index = 0; index < state.inventory.capacity; index += 1) {
-    const item = state.inventory.items[index];
-    const slot = document.createElement("button");
-    slot.className = "slot";
-    if (item) {
-      slot.classList.add("filled");
-      slot.textContent = item.definition.name;
-      slot.title = item.definition.description;
-      slot.setAttribute("aria-label", `${item.definition.name}を選択`);
-      if (item.instanceId === state.selectedInventoryId) slot.classList.add("selected");
-      slot.addEventListener("click", () => {
-        state.selectedInventoryId = state.selectedInventoryId === item.instanceId ? null : item.instanceId;
-        renderInventory();
-      });
-    } else {
-      slot.textContent = "空き";
-      slot.disabled = true;
-    }
-    grid.append(slot);
+  const list = document.getElementById("inventoryList");
+  const focusedId = list.contains(document.activeElement) ? document.activeElement.dataset.itemId : null;
+  list.replaceChildren();
+  for (const item of state.inventory.items) {
+    const entry = document.createElement("li");
+    const row = document.createElement("button");
+    const selected = item.definition.id === state.selectedInventoryId;
+    row.className = "inventory-row";
+    row.dataset.itemId = item.definition.id;
+    row.title = item.definition.description;
+    row.setAttribute("aria-label", `${item.definition.name} ${item.quantity}個を所持、選択して1個配置`);
+    row.setAttribute("aria-pressed", String(selected));
+    if (selected) row.classList.add("selected");
+    const name = document.createElement("span");
+    name.textContent = item.definition.name;
+    const quantity = document.createElement("span");
+    quantity.className = "inventory-quantity";
+    quantity.textContent = item.quantity;
+    row.append(name, quantity);
+    row.addEventListener("click", () => {
+      state.selectedInventoryId = state.selectedInventoryId === item.definition.id ? null : item.definition.id;
+      renderInventory();
+    });
+    entry.append(row);
+    list.append(entry);
+    if (item.definition.id === focusedId) row.focus({ preventScroll: true });
   }
-  document.getElementById("inventoryCount").textContent = `${state.inventory.items.length} / ${state.inventory.capacity}`;
-  const selected = state.inventory.items.find((item) => item.instanceId === state.selectedInventoryId);
+  if (!state.inventory.items.length) {
+    const empty = document.createElement("li");
+    empty.className = "inventory-empty";
+    empty.textContent = "アイテムはありません。";
+    list.append(empty);
+  }
+  document.getElementById("inventoryCount").textContent = `${getInventoryCount()} / ${state.inventory.capacity}`;
+  const selected = state.inventory.items.find((item) => item.definition.id === state.selectedInventoryId);
   document.getElementById("selection").textContent = selected
-    ? `${selected.definition.name}を選択中。砂浜をクリックして配置します。`
-    : "アイテムを選ぶと砂浜に配置できます。";
+    ? `${selected.definition.name}を選択中。砂浜をクリックして1個配置します。`
+    : "アイテムを選ぶと砂浜に1個配置できます。";
   document.getElementById("cancelSelection").disabled = !selected;
   document.getElementById("expandInventory").disabled = state.inventory.capacity >= MAX_INVENTORY_CAPACITY;
 }
