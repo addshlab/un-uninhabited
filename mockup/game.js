@@ -10,6 +10,12 @@ const INITIAL_INVENTORY_CAPACITY = 8;
 const INVENTORY_EXPANSION_SIZE = 4;
 const MAX_INVENTORY_CAPACITY = 24;
 const SPAWN_INTERVAL = { base: 15000, min: 8000, max: 30000 };
+const WEATHER_TYPES = [
+  { id: "sunny", label: "晴れ", weight: 7000 },
+  { id: "rain", label: "雨", weight: 2599 },
+  { id: "storm", label: "嵐", weight: 400 },
+  { id: "snow", label: "雪", weight: 1 },
+];
 const TIME_PERIODS = [
   { id: "morning", label: "朝", startHour: 5 },
   { id: "day", label: "昼", startHour: 11 },
@@ -29,6 +35,8 @@ const state = {
   message: "アイテムデータを読み込んでいます…",
   messageUntil: Infinity,
   localTime: null,
+  weather: null,
+  weatherSlot: null,
 };
 
 const COLORS = {
@@ -53,6 +61,7 @@ function getLocalTimeInfo(now = new Date()) {
     period,
     timezoneOffsetMinutes,
     isoLocal: `${localDate.getUTCFullYear()}-${String(localDate.getUTCMonth() + 1).padStart(2, "0")}-${String(localDate.getUTCDate()).padStart(2, "0")}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    weatherSlot: `${localDate.getUTCFullYear()}-${localDate.getUTCMonth()}-${localDate.getUTCDate()}-${hour}-${Math.floor(minute / 10)}`,
   };
 }
 
@@ -62,6 +71,28 @@ function updateLocalTime(now = new Date()) {
   const timeElement = document.getElementById("localTime");
   timeElement.textContent = `${String(state.localTime.hour).padStart(2, "0")}:${String(state.localTime.minute).padStart(2, "0")}`;
   timeElement.dateTime = state.localTime.isoLocal;
+  updateWeather();
+}
+
+function chooseWeather(random = Math.random()) {
+  const totalWeight = WEATHER_TYPES.reduce((total, weather) => total + weather.weight, 0);
+  let cursor = Math.floor(random * totalWeight);
+  for (const weather of WEATHER_TYPES) {
+    cursor -= weather.weight;
+    if (cursor < 0) return weather;
+  }
+  return WEATHER_TYPES.at(-1);
+}
+
+function updateWeather() {
+  if (!state.localTime || state.weatherSlot === state.localTime.weatherSlot) return;
+  const previousWeather = state.weather;
+  state.weather = chooseWeather();
+  state.weatherSlot = state.localTime.weatherSlot;
+  document.getElementById("weather").textContent = state.weather.label;
+  if (previousWeather && previousWeather.id !== state.weather.id) {
+    announce(`天気が${state.weather.label}に変わりました。`);
+  }
 }
 
 function px(x, y, w = 2, h = 2, color = "#fff") {
@@ -136,6 +167,57 @@ function drawTimeOfDayOverlay() {
     ctx.fillStyle = glow;
     ctx.fillRect(88, 154, 76, 62);
     drawCampfire(126, 192, state.time);
+  }
+}
+
+function drawWeather(t) {
+  const weather = state.weather?.id ?? "sunny";
+  if (weather === "sunny") return;
+
+  if (weather === "rain" || weather === "storm") {
+    ctx.fillStyle = weather === "storm" ? "rgba(7, 16, 29, .38)" : "rgba(30, 58, 72, .16)";
+    ctx.fillRect(0, 0, PLAYABLE_WIDTH, H);
+    ctx.strokeStyle = weather === "storm" ? "rgba(190, 218, 235, .78)" : "rgba(174, 213, 232, .62)";
+    ctx.lineWidth = 1;
+    const dropCount = weather === "storm" ? 62 : 38;
+    const speed = weather === "storm" ? 92 : 68;
+    const slant = weather === "storm" ? 8 : 5;
+    ctx.beginPath();
+    for (let index = 0; index < dropCount; index += 1) {
+      const x = (index * 47 + t * (weather === "storm" ? 37 : 23)) % (PLAYABLE_WIDTH + 20) - 10;
+      const y = (index * 31 + t * speed) % (H + 16) - 8;
+      ctx.moveTo(Math.round(x), Math.round(y));
+      ctx.lineTo(Math.round(x - slant), Math.round(y + 9));
+    }
+    ctx.stroke();
+
+    // 嵐では約7秒おきに短く稲光を走らせる。
+    const lightningPhase = t % 7;
+    if (weather === "storm" && lightningPhase < .13) {
+      ctx.fillStyle = `rgba(226, 237, 255, ${.5 - lightningPhase * 3})`;
+      ctx.fillRect(0, 0, PLAYABLE_WIDTH, H);
+      ctx.strokeStyle = "#eef4ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(76, 0);
+      ctx.lineTo(68, 25);
+      ctx.lineTo(78, 25);
+      ctx.lineTo(62, 53);
+      ctx.stroke();
+    }
+    return;
+  }
+
+  if (weather === "snow") {
+    ctx.fillStyle = "rgba(221, 235, 242, .08)";
+    ctx.fillRect(0, 0, PLAYABLE_WIDTH, H);
+    for (let index = 0; index < 42; index += 1) {
+      const drift = Math.sin(t * .9 + index * 1.7) * 7;
+      const x = (index * 43 + drift + PLAYABLE_WIDTH) % PLAYABLE_WIDTH;
+      const y = (index * 29 + t * (9 + index % 4)) % (H + 6) - 3;
+      const size = index % 5 === 0 ? 2 : 1;
+      px(x, y, size, size, index % 3 === 0 ? "#ffffff" : "#dcecf2");
+    }
   }
 }
 
@@ -459,6 +541,7 @@ function render(ms) {
   drawIsland();
   drawBeachItems(now);
   drawTimeOfDayOverlay();
+  drawWeather(state.time);
   requestAnimationFrame(render);
 }
 
