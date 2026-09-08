@@ -24,6 +24,8 @@
 
 ## クラフトシステムの追加
 
+- 設計: [`spec/crafting-system-design.md`](../spec/crafting-system-design.md)
+
 - レシピは `data/craft_recipies.json` に記載する
 - インベントリの初期容量は16個にする
 - インベントリを以下のクラフトで拡張できるようにする
